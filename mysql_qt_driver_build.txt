@@ -1,0 +1,80 @@
+编译mysql driver for specified version of qt
+reference1: https://blog.csdn.net/weixin_44152895/article/details/125348288
+reference2: https://blog.csdn.net/qq_29912325/article/details/123066776
+
+
+
+编译QT源码并安装的问题：
+source loc:
+https://download.qt.io/official_releases/qt/
+reference:
+https://www.ics.com/blog/how-compile-qt-source-code-linux
+
+
+
+最后driver,也就是.so文件要放的位置： /usr/lib/x86_64-linux-gnu/qt5/plugins/sqldrivers
+可以试试看放到这个底下，应该也可以： /usr/lib/x86_64-linux-gnu
+
+首先如果你已经安装了QT creator在linux上，这里用Qt5.15.2这个版本举例，你要去找一个文件叫“mysql.pro”。如下所示，它在我给的“编译位置“那里。
+如果driver,也就是.so文件编译成功它就在我给的“编译结果位置“
+5.15.2 编译位置： /home/k2/Qt/5.15.2/Src/qtbase/src/plugins/sqldrivers/mysql
+5.15.2 编译结果位置： /home/k2/Qt/5.15.2/Src/qtbase/src/plugins/sqldrivers/plugins/sqldrivers
+
+如果你因为某些原因不想安装整个QT creator，比如说你安装了ROS，里面自带QT的基础库。那么首先查看ROS里使用的QT库的版本，然后去寻找QT源码并下载，解压。你会找到一个“mysql.pro”在类似的地方。这边我用5.15.3举例。
+5.15.3源码编译位置：/home/shengwang/Downloads/qt-everywhere-opensource-src-5.15.3/qt-everywhere-src-5.15.3/qtbase/src/plugins/sqldrivers/mysql
+
+
+
+-------------------------必须更改内容------------------------------------------------
+
+1.在mysql.pro中需要修改的内容,这是必须要加的，需要根据实际情况更改
+4.1 commit "QMAKE_USE += mysql"
+4.2 add "INCLUDEPATH+=/usr/include/mysql", this is for mysql client
+4.3 add "INCLUDEPATH+=/www/server/mysql/include", find where is your mysql.h, add this path
+4.4 add "LIBS+=-L/usr/lib/mysql -lmysqlclient"
+
+2.在qsqldriverbase.pri中需要更改的内容,这是必须要加的
+5.1 commit "include($$shadowed($$PWD)/qtsqldrivers-config.pri)"
+5.2 add "include(./configure.pri)" below that commit
+
+
+之后使用命令“sudo /usr/lib/x86_64-linux-gnu/qt5/bin/qmake /home/shengwang/Downloads/qt-everywhere-opensource-src-5.15.3/qt-everywhere-src-5.15.3/qtbase/src/plugins/sqldrivers/mysql/mysql.pro”
+
+
+--------------------------之后会有大量常见的报错-------------------------------------
+3.fatal error: QtSql/private/qtsqlglobal_p.h: No such file or directory
+   54 | #include <QtSql/private/qtsqlglobal_p.h>
+类似的这种报错，就在源码中寻找这个   “qtsqlglobal_p.h”
+然后在mysql.pro中往下面添加一行： 
+“INCLUDEPATH+=/home/shengwang/Downloads/qt-everywhere-opensource-src-5.15.3/qt-everywhere-src-5.15.3/qtbase/include/QtSql/5.15.3”
+"INCLUDEPATH+=/home/shengwang/Downloads/qt-everywhere-opensource-src-5.15.3/qt-everywhere-src-5.15.3/qtbase/include/QtCore/5.15.3"
+
+
+4.fatal error: QtCore/private/qconfig_p.h: No such file or directory
+   59 | #include <QtCore/private/qconfig_p.h>
+输入这行命令：“sudo apt-get install qtbase5-private-dev”
+
+
+5. mv: cannot move 'libqsqlmysql.so' to '/plugins/sqldrivers/libqsqlmysql.so': Permission denied
+着已经是最后一步，驱动以及编译成功，只是不能转移   用“sudo make”替换“make”即可。或者采取下面的麻烦方法：
+权限给予：sudo chmod -R 777 文件或文件夹的名字  # 表示对当前目录及目录下所有的文件赋予可读可写可执行权限
+
+-------------------------不常见的报错-------------------------------------
+
+6.[SOLVED] /bin/bash^M: bad interpreter: No such file or directory
+sed -i -e 's/\r$//' NAME-OF-FILE.sh
+https://www.studytonight.com/post/solved-getting-error-while-executing-a-sh-file-binbashm-bad-interpreter
+
+7.assimp缺失
+Q&A：https://forum.qt.io/topic/137451/project-error-library-assimp-is-not-defined
+安装这个玩意，下面链接有方法
+https://github.com/assimp/assimp/blob/master/Build.md
+
+
+
+8./home/robert/Documents/qt-everywhere-src-5.15.2/qtbase/src/corelib/text/qbytearraymatcher.h: In static member function ‘static QStaticByteArrayMatcherBase::Skiptable QStaticByteArrayMatcherBase::generate(const char*, uint)’:
+/home/robert/Documents/qt-everywhere-src-5.15.2/qtbase/src/corelib/text/qbytearraymatcher.h:103:38: error: ‘numeric_limits’ is not a member of ‘std’
+  103 |         const auto uchar_max = (std::numeric_limits<uchar>::max)();
+  
+解决办法：加：#include <limits>
+https://forum.qt.io/topic/139626/unable-to-build-static-version-of-qt-5-15-2/15

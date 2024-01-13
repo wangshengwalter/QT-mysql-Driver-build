@@ -1,0 +1,42 @@
+sudo apt install mysql-server
+//安装数据库
+
+
+sudo apt install phpmyadmin
+sudo ln -s /etc/phpmyadmin/apache.conf /etc/apache2/sites-enabled/phpmyadmin.conf
+sudo a2enconf phpmyadmin
+sudo systemctl restart apache2
+//安装phpmyadmin监控数据库
+
+
+
+sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
+bind-address = 192.168.1.100
+//开放内网端口。
+
+
+sudo mysql -u root
+SELECT User, Host FROM mysql.user;
+CREATE USER 'root'@'%' IDENTIFIED BY 'admin';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+EXIT;
+sudo systemctl restart mysql
+//新建root用户，开放此root用户的所有权限。
+
+
+
+sudo mysqldump -u root -p RobotLocalDatabase > RobotLocalDatabase.sql
+//保存原来服务器的table。
+
+
+
+//上面仅仅是安装数据库服务器，此时内网中的所有电脑都可以连接此数据库进行操作。如果需要软件在本机上运行，则还需要安装mysql客户端，也就是此电脑是服务器也是客户端。可以自己连接自己和访问自己。
+
+//如果phpmyadmin登陆不了mysql数据库
+https://devpress.csdn.net/mysqldb/62ee5dd37e668234661822ff.html
+
+//phpmyadmin打开来是白色的界面
+sudo systemctl restart apache2
+sudo apt install php8.1-mysql
+sudo apt -y install wget php php-cgi php-mysqli php-pear php-mbstring libapache2-mod-php php-common php-phpseclib php-mysql
